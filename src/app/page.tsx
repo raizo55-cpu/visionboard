@@ -1,7 +1,7 @@
 'use client';
 
 import { useBoardStore } from '@/store/useBoardStore';
-import { Plus, Layout } from 'lucide-react';
+import { Plus, Layout, DownloadCloud, UploadCloud } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +35,44 @@ export default function Dashboard() {
     router.push('/editor');
   };
 
+  const handleExportData = () => {
+    const data = localStorage.getItem('visionflow-storage');
+    if (!data) {
+      alert('書き出すデータがありません。');
+      return;
+    }
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visionflow-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          // Validate JSON broadly
+          JSON.parse(content);
+          localStorage.setItem('visionflow-storage', content);
+          alert('データの復元が完了しました。画面を再読み込みします。');
+          window.location.reload();
+        } catch (err) {
+          alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。');
+        }
+      };
+      reader.readAsText(file);
+    }
+    e.target.value = '';
+  };
+
   return (
     <main className="flex-1 p-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -43,13 +81,34 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Vision Boards</h1>
             <p className="text-slate-400 mt-1">あなたの目標とビジョンを管理しましょう</p>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors shadow-lg shadow-blue-500/20"
-          >
-            <Plus size={20} />
-            <span>新規ボード</span>
-          </button>
+          <div className="flex items-center gap-1 md:gap-3">
+            <div className="flex items-center gap-1 md:gap-2 mr-2 md:mr-4 border-r border-zinc-800 pr-2 md:pr-4">
+              <label 
+                className="flex items-center gap-2 px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-slate-300 rounded-lg cursor-pointer transition-colors text-xs md:text-sm font-medium"
+                title="別のPCからデータを引き継ぐ"
+              >
+                <DownloadCloud size={18} />
+                <span className="hidden sm:inline">データ読込</span>
+                <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
+              </label>
+              <button 
+                onClick={handleExportData}
+                className="flex items-center gap-2 px-2 py-2 bg-zinc-800 hover:bg-zinc-700 text-slate-300 rounded-lg transition-colors text-xs md:text-sm font-medium"
+                title="今のデータを書き出す"
+              >
+                <UploadCloud size={18} />
+                <span className="hidden sm:inline">データ書出</span>
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1 md:gap-2 px-3 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors shadow-lg shadow-blue-500/20 text-sm md:text-base"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">新規ボード</span>
+            </button>
+          </div>
         </header>
 
         {boards.length === 0 ? (
